@@ -9,6 +9,7 @@ paths:
   /products:
     get:
       summary: Get all products
+      tags: [Products]
       responses:
         '200':
           description: A list of products
@@ -18,9 +19,32 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/Product'
+        '500':
+          description: Internal server error
+    post:
+      summary: Create a new product
+      tags: [Products]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NewProduct'
+      responses:
+        '201':
+          description: Product created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Product'
+        '400':
+          description: Bad request
+        '500':
+          description: Internal server error
   /products/{productId}:
     get:
       summary: Get product by ID
+      tags: [Products]
       parameters:
         - in: path
           name: productId
@@ -36,6 +60,8 @@ paths:
                 $ref: '#/components/schemas/Product'
         '404':
           description: Product not found
+        '500':
+          description: Internal server error
 components:
   schemas:
     Product:
@@ -49,3 +75,20 @@ components:
           type: string
         price:
           type: number
+        count:
+          type: integer
+    NewProduct:
+      type: object
+      required:
+        - title
+        - price
+        - count
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+        price:
+          type: number
+        count:
+          type: integer
