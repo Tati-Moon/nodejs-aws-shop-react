@@ -40,8 +40,8 @@ exports.handler = async (event) => {
             dynamoDB.send(new QueryCommand(stockParams))
         ]);
 
-        const product = productResponse.Items[0];
-        const stock = stockResponse.Items[0];
+        const product = productResponse?.Items[0];
+        const stock = stockResponse?.Items[0];
 
         if (product) {
             const returnedBody = JSON.stringify({

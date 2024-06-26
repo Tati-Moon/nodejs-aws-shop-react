@@ -4,7 +4,7 @@ const YAML = require('yamljs');
 const path = require('path');
 
 // Загрузка файла Swagger
-const swaggerDocument = YAML.load(path.join(__dirname, 'product_service', 'docs', 'openapi.yaml'));
+const swaggerDocument = YAML.load(path.join(__dirname, 'docs', 'openapi.yaml'));
 
 const app = express();
 
