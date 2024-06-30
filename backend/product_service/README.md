@@ -22,9 +22,9 @@ Task: https://github.com/rolling-scopes-school/aws/blob/main/aws-developer/03_se
    * `npm run start-swagger`
 
 ### Links
-- [Product Service API](https://s0ob4l26k9.execute-api.us-east-1.amazonaws.com/prod/products)
-- [Product Service API for id = 1](https://s0ob4l26k9.execute-api.us-east-1.amazonaws.com/prod/products/1)
-- [Frontend](https://d2i6ibe4yd5bdd.cloudfront.net/)
+- [Product Service API](https://dapdmi8g8h.execute-api.us-east-1.amazonaws.com/prod/products)
+- [Product Service API for id = 1](https://dapdmi8g8h.execute-api.us-east-1.amazonaws.com/prod/products/1)
+- [Frontend](https://d3oeh93tzbcw2m.cloudfront.net/)
 - [Swagger](http://localhost:3000/api-docs)
 
 ### Task 4.1
@@ -87,7 +87,7 @@ curl -X POST \
   - Implemented transaction-based creation of products and stocks to ensure data integrity.
 
 ### Links
-- [Product Service API](https://s0ob4l26k9.execute-api.us-east-1.amazonaws.com/prod/products)
-- [Product Service API for id = 1](https://s0ob4l26k9.execute-api.us-east-1.amazonaws.com/prod/products/1)
-- [Frontend](https://d2i6ibe4yd5bdd.cloudfront.net/)
+- [Product Service API](https://dapdmi8g8h.execute-api.us-east-1.amazonaws.com/prod/products)
+- [Product Service API for id = 1](https://dapdmi8g8h.execute-api.us-east-1.amazonaws.com/prod/products/1)
+- [Frontend](https://d3oeh93tzbcw2m.cloudfront.net/)
 - [Swagger](http://localhost:3000/api-docs)

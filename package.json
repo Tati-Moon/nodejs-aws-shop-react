@@ -12,6 +12,7 @@
     "test:coverage": "vitest run --coverage",
     "lint": "eslint --ignore-path .gitignore --fix src",
     "prettier": "prettier src --write",
+    "cdk-bootstrap": "cdk bootstrap aws://851725229611/us-east-1",
     "cdk-deploy": "cdk deploy --app \"cdk_test/cdk.out\"",
     "deploy": "npm run build && npm run cdk-deploy"
   },
@@ -26,6 +27,7 @@
     "@types/yup": "^0.29.14",
     "aws-sdk": "^2.1646.0",
     "axios": "^0.27.2",
+    "csv-parser": "^3.0.0",
     "express": "^4.19.2",
     "formik": "^2.2.9",
     "react": "^18.2.0",

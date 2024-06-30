@@ -176,7 +176,7 @@ internal CdkStack(Construct scope, string id, IStackProps props = null) : base(s
 [Settings] (img.png)
 8) Checked links:
 [S3 bucket link](http://shop-web-app-automated.s3-website.eu-central-1.amazonaws.com/) - the 403 error should be shown
-[Cloud Front link](https://dfmqzjmg0ul9o.cloudfront.net/) - should be available.
+[Cloud Front link](https://d3oeh93tzbcw2m.cloudfront.net/) - should be available.
 
 
 # Task 3
@@ -203,9 +203,9 @@ Task: https://github.com/rolling-scopes-school/aws/blob/main/aws-developer/03_se
    * `npm run start-swagger`
 
 ### Links
-- [Product Service API](https://s0ob4l26k9.execute-api.us-east-1.amazonaws.com/prod/products)
-- [Product Service API for id = 1](https://s0ob4l26k9.execute-api.us-east-1.amazonaws.com/prod/products/1)
-- [Frontend](https://d2i6ibe4yd5bdd.cloudfront.net/)
+- [Product Service API](https://dapdmi8g8h.execute-api.us-east-1.amazonaws.com/prod/products)
+- [Product Service API for id = 1](https://dapdmi8g8h.execute-api.us-east-1.amazonaws.com/prod/products/1)
+- [Frontend](https://d3oeh93tzbcw2m.cloudfront.net/)
 - [Swagger](http://localhost:3000/api-docs)
 
 ### Task 4.1
@@ -268,7 +268,41 @@ curl -X POST \
   - Implemented transaction-based creation of products and stocks to ensure data integrity.
 
 ### Links
-- [Product Service API](https://s0ob4l26k9.execute-api.us-east-1.amazonaws.com/prod/products)
-- [Product Service API for id = 1](https://s0ob4l26k9.execute-api.us-east-1.amazonaws.com/prod/products/1)
-- [Frontend](https://d2i6ibe4yd5bdd.cloudfront.net/)
+- [Product Service API](https://dapdmi8g8h.execute-api.us-east-1.amazonaws.com/prod/products)
+- [Product Service API for id = 8f79f8e2-8841-4dc3-871e-2f7c861b130e](https://dapdmi8g8h.execute-api.us-east-1.amazonaws.com/prod/products/8f79f8e2-8841-4dc3-871e-2f7c861b130e)
+- [Frontend](https://d3oeh93tzbcw2m.cloudfront.net/)
 - [Swagger](http://localhost:3000/api-docs)
+
+
+# Task 5
+https://github.com/rolling-scopes-school/aws/blob/main/aws-developer/05_integration_with_s3/task.md
+
+### Links
+- [Product Service API](https://dapdmi8g8h.execute-api.us-east-1.amazonaws.com/prod/products)
+- [Product Service API for id = 8f79f8e2-8841-4dc3-871e-2f7c861b130e](https://dapdmi8g8h.execute-api.us-east-1.amazonaws.com/prod/products/8f79f8e2-8841-4dc3-871e-2f7c861b130e)
+- [Frontend](https://d3oeh93tzbcw2m.cloudfront.net/)
+- [Swagger](http://localhost:3000/api-docs)
+
+![image](https://github.com/Tati-Moon/nodejs-aws-shop-react/assets/170366343/5362f40a-93b6-4f27-9c99-7d1cb49b803e)
+
+![image](https://github.com/Tati-Moon/nodejs-aws-shop-react/assets/170366343/0b451010-b5b7-46c1-8b9f-6bf71f13363e)
+
+### Task 5.1
+Created and configured a new S3 bucket with a folder called 'uploaded'
+
+### Task 5.2
+1. Created a Lambda function `importProductsFile` to handle HTTP GET requests.
+2. Added API `/import`.
+3. Added necessary configurations to pass the `name` parameter in the request.
+4. Updated the stack with policies to allow Lambda functions to interact with S3.
+5. Updated the `import` property in the API paths configuration to integrate the new Lambda endpoint.
+
+![image](https://github.com/Tati-Moon/nodejs-aws-shop-react/assets/170366343/bd1dec60-fc48-4268-a77a-c2b31f766340)
+
+### Task 5.3
+1. Created a Lambda function `importFileParser` to handle S3 events.
+2. The function is triggered by `s3:ObjectCreated:*` events.
+3. Updated the stack to configure the S3 event trigger for the `importFileParser` Lambda function.
+4. Ensured that the Lambda function has the necessary permissions to read from the S3 bucket and log to CloudWatch.
+![image](https://github.com/Tati-Moon/nodejs-aws-shop-react/assets/170366343/c5107f0b-aeae-414b-92f3-23c223d914de)
+

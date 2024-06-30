@@ -3,10 +3,11 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    	"init": "npm install",
+      "init": "npm install",
       "build": "npm run build",
+      "cdk-bootstrap":"cdk bootstrap aws://851725229611/us-east-1",
       "cdk-deploy": "cdk deploy --app \"cdk_test/cdk.out\"",
-      "deploy:sdk": "npm run build && npm run cdk-deploy",
+      "deploy": "npm run build && npm run cdk-deploy",
       "start-swagger": "node swaggerServer.js",
       "test:jest": "jest -c jest.config.js --coverage"
   },
@@ -18,8 +19,7 @@
     "uuid": "^10.0.0",
     "yamljs": "^0.3.0"
   },
-  "devDependencies": {
-   
+  "devDependencies": {   
     "@types/aws-lambda": "^8.10.138",   
     "c8": "^7.11.3",
     "eslint": "^8.19.0",
