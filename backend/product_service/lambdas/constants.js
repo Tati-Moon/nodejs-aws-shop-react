@@ -2,6 +2,7 @@ const CONSTANTS = {
     HTTP_STATUS: {
         OK: 200,
         CREATED: 201,
+        NO_CONTENT: 204,
         BAD_REQUEST: 400,
         UNAUTHORIZED: 401,
         FORBIDDEN: 403,
@@ -17,6 +18,8 @@ const CONSTANTS = {
         INVALID_INPUT_DESCRIPTION: 'Description is required and must be a non-empty string',
         INVALID_INPUT_PRICE: 'Price is required and must be a positive number',
         INVALID_INPUT_COUNT: 'Count is required and must be a non-negative number',
+        DELETE_SUCCESS: id => `Product deleted successfully: ${id}`,
+        INVALID_PRODUCT_ID : id => `Invalid id: ${id}`,
         FAILED_TO_UNLOCK: error => `Failed to unlock: ${error}`,
         TRANSACTION_FAILED: error => `Transaction failed: ${error}`,
         ERROR_CREATING_PRODUCT: error => `Error creating product: ${error}`,

@@ -15,7 +15,8 @@ const CONSTANTS = {
         CREATE_URL_ERROR: 'Could not create signed URL',
         PROCESSING_ERROR: 'Error processing file',
         PROCESSING_INFO: 'Files processed successfully',
-        FILE_NAME_IS_MISSING: 'File Name parameter is missing'
+        FILE_NAME_IS_MISSING: 'File Name parameter is missing',
+        FILE_PROCESSED: 'CSV File was processed'
     },
 };
 

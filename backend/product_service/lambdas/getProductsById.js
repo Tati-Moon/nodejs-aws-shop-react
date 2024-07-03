@@ -11,9 +11,17 @@ const stocksTableName = process.env.STOCKS_TABLE;
 exports.handler = async (event) => {
     const origin = event.headers.origin;
     const headers = getCorsHeaders(origin, 'GET,OPTIONS');
-    const { productId } = event.pathParameters || {};
+    const { productId } = event.pathParameters;
 
     console.log('Received request:', event);
+
+    if (!productId || typeof productId !== 'string' || productId.trim() === '') {
+        return {
+            statusCode: HTTP_STATUS.BAD_REQUEST,
+            headers,
+            body: JSON.stringify({ message: MESSAGES.INVALID_PRODUCT_ID(productId) }),
+        };
+    }
 
     try {
         const productParams = {
@@ -63,7 +71,7 @@ exports.handler = async (event) => {
             };
         }
     } catch (error) {
-        console.error(`Error getting productId = ${productId}: ${error}`, error);
+        console.log(`Error getting productId = ${productId}: ${error}`, error);
         return {
             statusCode: HTTP_STATUS.INTERNAL_SERVER_ERROR,
             headers,

@@ -43,7 +43,7 @@ describe('import Lambda handler', () => {
     // Mock the S3 getObject response to return a readable stream
     const { PassThrough } = require('stream');
     const mockStream = new PassThrough();
-    mockStream.end('id,name\n1,Product1\n2,Product2\n');
+    mockStream.end('id,title\n1,Product1\n2,Product2\n');
 
     sendMock
       .mockResolvedValueOnce({ Body: mockStream }) // getObjectCommand
@@ -53,8 +53,8 @@ describe('import Lambda handler', () => {
     // Mock the csvParser to return a readable stream of parsed CSV objects
     const mockCsvStream = new PassThrough({ objectMode: true });
     setImmediate(() => {
-      mockCsvStream.write({ id: '1', name: 'Product1' });
-      mockCsvStream.write({ id: '2', name: 'Product2' });
+      mockCsvStream.write({ id: '1', title: 'Product1' });
+      mockCsvStream.write({ id: '2', title: 'Product2' });
       mockCsvStream.end();
     });
 
@@ -67,7 +67,7 @@ describe('import Lambda handler', () => {
     expect(response).toEqual({
       statusCode: HTTP_STATUS.OK,
       headers,
-      body: JSON.stringify({ message: 'CSV File was processed' })
+      body: JSON.stringify({ message: MESSAGES.FILE_PROCESSED })
     });
   });
 

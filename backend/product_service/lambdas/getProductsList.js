@@ -1,4 +1,4 @@
-﻿﻿const { DynamoDBClient } = require("@aws-sdk/client-dynamodb");
+﻿const { DynamoDBClient } = require("@aws-sdk/client-dynamodb");
 const { DynamoDBDocumentClient, ScanCommand } = require("@aws-sdk/lib-dynamodb");
 const { getCorsHeaders } = require('./cors');
 const { HTTP_STATUS, MESSAGES } = require('./constants');
@@ -21,7 +21,7 @@ exports.handler = async (event) => {
         ]);
 
         const products = productsResult.Items;
-        const stocks = stocksResult.Items;
+        const stocks = stocksResult?.Items || [];
 
         const productList = products.map(product => {
             const stock = stocks.find(s => s.product_id === product.id);
@@ -37,7 +37,7 @@ exports.handler = async (event) => {
             body: JSON.stringify(productList),
         };
     } catch (error) {
-        console.error('Error fetching data:', error);
+        console.log('Error fetching data:', error);
         return {
             statusCode: HTTP_STATUS.INTERNAL_SERVER_ERROR,
             headers,

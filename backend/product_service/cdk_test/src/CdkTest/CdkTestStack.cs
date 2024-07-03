@@ -13,7 +13,7 @@ namespace Cdk
     {
         private const string BackendPath = "product_service";
         private const string LambdaPath = "lambdas";
-        private readonly string[] _allowMethods = { "GET", "OPTIONS", "POST" };
+        private readonly string[] _allowMethods = { "GET", "OPTIONS", "POST", "DELETE" };
         private readonly string[] _allowHeaders =
             { "Content-Type", "X-Amz-Date", "Authorization", "X-Api-Key", "X-Amz-Security-Token" };
 
@@ -83,6 +83,19 @@ namespace Cdk
                 }
             });
 
+            // Create Lambda function for deleteProductById
+            var deleteProductByIdFunction = new Function(this, "DeleteProductByIdFunction", new FunctionProps
+            {
+                Runtime = Runtime.NODEJS_18_X,
+                Handler = "deleteProductById.handler",
+                Code = Code.FromAsset($"../../{BackendPath}/{LambdaPath}"),
+                Environment = new Dictionary<string, string>
+                {
+                    { "PRODUCTS_TABLE", productsTable.TableName },
+                    { "STOCKS_TABLE", stocksTable.TableName }
+                }
+            });
+
             // Grant Lambda functions access to DynamoDB tables
             productsTable.GrantReadWriteData(getProductsListFunction);
             stocksTable.GrantReadWriteData(getProductsListFunction);
@@ -91,6 +104,8 @@ namespace Cdk
             productsTable.GrantReadWriteData(createProductFunction);
             stocksTable.GrantReadWriteData(createProductFunction);
             locksTable.GrantReadWriteData(createProductFunction);
+            productsTable.GrantReadWriteData(deleteProductByIdFunction);
+            stocksTable.GrantReadWriteData(deleteProductByIdFunction);
 
             // Create API Gateway with CORS preflight options
             var api = new RestApi(this, "ProductApi", new RestApiProps
@@ -129,6 +144,10 @@ namespace Cdk
             var getProductsByIdIntegration = new LambdaIntegration(getProductsByIdFunction);
             productByIdResource.AddMethod("GET", getProductsByIdIntegration);
 
+            // Integrate deleteProductByIdFunction with API Gateway
+            var deleteProductByIdIntegration = new LambdaIntegration(deleteProductByIdFunction);
+            productByIdResource.AddMethod("DELETE", deleteProductByIdIntegration);
+
             // Ensure CORS preflight is only added once
             if (productByIdResource.DefaultCorsPreflightOptions == null)
             {
@@ -147,7 +166,6 @@ namespace Cdk
             //const string docsUrl = "http://localhost:3000/api-docs";
             return new[]
             {
-                //localUrl, docsUrl, $"https://{}"
                 "*"
             };
         }

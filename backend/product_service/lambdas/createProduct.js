@@ -35,7 +35,7 @@ const lock = async (name) => {
         const result = await dynamoDB.send(new UpdateCommand(params));
         return result.Attributes.count === 1;
     } catch (error) {
-        console.error(`Failed to obtain lock: ${error}`);
+        console.log(`Failed to obtain lock: ${error}`);
         return false;
     }
 };
@@ -59,7 +59,7 @@ const unlock = async (name) => {
         await dynamoDB.send(new UpdateCommand(params));
         return true;
     } catch (error) {
-        console.error(MESSAGES.FAILED_TO_UNLOCK(error));
+        console.log(MESSAGES.FAILED_TO_UNLOCK(error));
         return false;
     }
 };
@@ -97,7 +97,7 @@ exports.handler = async (event) => {
 
         const isLocked = await lock(lockName);
         if (!isLocked) {
-            console.error(MESSAGES.RESOURCE_LOCKED);
+            console.log(MESSAGES.RESOURCE_LOCKED);
             return {
                 statusCode: HTTP_STATUS.LOCKED,
                 body: JSON.stringify({ message: MESSAGES.RESOURCE_LOCKED }),
@@ -125,32 +125,32 @@ exports.handler = async (event) => {
         try {
             await dynamoDB.send(new TransactWriteCommand(transactParams));
 
-        const returnItem = {
-            id: productId,
-            title,
-            description,
-            price,
-            count
-        };
+            const returnItem = {
+                id: productId,
+                title,
+                description,
+                price,
+                count
+            };
 
-        await unlock(lockName);
+            await unlock(lockName);
 
-        return {
-            statusCode: HTTP_STATUS.CREATED,
-            body: JSON.stringify(returnItem),
-            headers,
-        };
+            return {
+                statusCode: HTTP_STATUS.CREATED,
+                body: JSON.stringify(returnItem),
+                headers,
+            };
+        } catch (error) {
+            console.log(MESSAGES.TRANSACTION_FAILED(error));
+            await unlock(lockName);
+            return {
+                statusCode: HTTP_STATUS.INTERNAL_SERVER_ERROR,
+                body: JSON.stringify({ message: MESSAGES.INTERNAL_SERVER_ERROR }),
+                headers,
+            };
+        }
     } catch (error) {
-        console.error(MESSAGES.TRANSACTION_FAILED(error));
-        await unlock(lockName);
-        return {
-            statusCode: HTTP_STATUS.INTERNAL_SERVER_ERROR,
-            body: JSON.stringify({ message: MESSAGES.INTERNAL_SERVER_ERROR }),
-            headers,
-        };
-    }
-} catch (error) {
-        console.error(MESSAGES.ERROR_CREATING_PRODUCT(error));
+        console.log(MESSAGES.ERROR_CREATING_PRODUCT(error));//153
         //await unlock(lockName);
         return {
             statusCode: HTTP_STATUS.INTERNAL_SERVER_ERROR,

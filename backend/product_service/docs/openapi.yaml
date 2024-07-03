@@ -62,6 +62,22 @@ paths:
           description: Product not found
         '500':
           description: Internal server error
+    delete:
+      summary: Delete product by ID
+      tags: [Products]
+      parameters:
+        - in: path
+          name: productId
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Product deleted successfully
+        '400':
+          description: Bad request
+        '500':
+          description: Internal server error
 components:
   schemas:
     Product:

@@ -51,7 +51,7 @@ exports.handler = async (event) => {
         return {
           statusCode: HTTP_STATUS.OK,
             headers,
-            body: JSON.stringify({ message: 'CSV File was processed' }),
+            body: JSON.stringify({ message: MESSAGES.FILE_PROCESSED }),
         }
     } catch (error) {
         console.log('Error processing CSV file:', error);
