@@ -1,11 +1,21 @@
 const { S3Client, GetObjectCommand, CopyObjectCommand, DeleteObjectCommand } = require('@aws-sdk/client-s3');
+const { SQSClient, SendMessageBatchCommand } = require('@aws-sdk/client-sqs');
 const csvParser = require('csv-parser');
 const { getCorsHeaders } = require('../lambdas/cors');
 const { HTTP_STATUS, MESSAGES } = require('../lambdas/constants');
 const { handler } = require('../lambdas/importFileParser');
+const { PassThrough } = require('stream');
 
 jest.mock('@aws-sdk/client-s3');
 jest.mock('csv-parser');
+jest.mock('@aws-sdk/client-sqs', () => {
+  return {
+    SQSClient: jest.fn().mockImplementation(() => ({
+          send: jest.fn()
+      })),
+      SendMessageBatchCommand: jest.fn()
+  };
+});
 
 describe('import Lambda handler', () => {
   const headers = getCorsHeaders('*');
@@ -27,11 +37,16 @@ describe('import Lambda handler', () => {
   };
 
   let sendMock;
-
+  let sqsMock;
   beforeEach(() => {
     sendMock = jest.fn();
     S3Client.mockImplementation(() => ({
       send: sendMock
+    }));
+
+    sqsMock = jest.fn();
+    SQSClient.mockImplementation(() => ({
+      send: sqsMock
     }));
   });
 
@@ -41,7 +56,6 @@ describe('import Lambda handler', () => {
 
   test('should process CSV and return success response', async () => {
     // Mock the S3 getObject response to return a readable stream
-    const { PassThrough } = require('stream');
     const mockStream = new PassThrough();
     mockStream.end('id,title\n1,Product1\n2,Product2\n');
 
@@ -59,11 +73,17 @@ describe('import Lambda handler', () => {
     });
 
     csvParser.mockReturnValue(mockCsvStream);
+    sqsMock.mockReturnValue({});
+
     const response = await handler(mockEvent);
+
     expect(sendMock).toHaveBeenCalledTimes(3);
     expect(sendMock).toHaveBeenNthCalledWith(1, expect.any(GetObjectCommand));
     expect(sendMock).toHaveBeenNthCalledWith(2, expect.any(CopyObjectCommand));
     expect(sendMock).toHaveBeenNthCalledWith(3, expect.any(DeleteObjectCommand));
+    expect(sqsMock).toHaveBeenCalledTimes(1);
+    expect(sqsMock).toHaveBeenCalledWith(expect.any(SendMessageBatchCommand));
+
     expect(response).toEqual({
       statusCode: HTTP_STATUS.OK,
       headers,
@@ -76,6 +96,7 @@ describe('import Lambda handler', () => {
     sendMock.mockRejectedValue(new Error(errorMessage));
     const response = await handler(mockEvent);
     expect(sendMock).toHaveBeenCalledTimes(1);
+    expect(sqsMock).toHaveBeenCalledTimes(0);
     expect(response.statusCode).toBe(HTTP_STATUS.INTERNAL_SERVER_ERROR);
     expect(response).toEqual({
       statusCode: HTTP_STATUS.INTERNAL_SERVER_ERROR,

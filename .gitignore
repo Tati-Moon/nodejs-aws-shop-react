@@ -25,3 +25,4 @@ dist-ssr
 *.sln
 *.sw?
 /cdk_test/cdk.out.other
+/backend/appsettings.json

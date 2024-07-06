@@ -1,9 +1,18 @@
 using System.Collections.Generic;
+using System.IO;
+using System.Text.Json;
 using Amazon.CDK;
-using Amazon.CDK.AWS.Lambda;
 using Amazon.CDK.AWS.APIGateway;
 using Amazon.CDK.AWS.DynamoDB;
+using Amazon.CDK.AWS.IAM;
+using Amazon.CDK.AWS.Lambda;
+using Amazon.CDK.AWS.Lambda.EventSources;
+using Amazon.CDK.AWS.SNS;
+using Amazon.CDK.AWS.SNS.Subscriptions;
+using Amazon.CDK.AWS.SQS;
+using CdkTest;
 using Constructs;
+
 using Function = Amazon.CDK.AWS.Lambda.Function;
 using FunctionProps = Amazon.CDK.AWS.Lambda.FunctionProps;
 
@@ -16,10 +25,14 @@ namespace Cdk
         private readonly string[] _allowMethods = { "GET", "OPTIONS", "POST", "DELETE" };
         private readonly string[] _allowHeaders =
             { "Content-Type", "X-Amz-Date", "Authorization", "X-Api-Key", "X-Amz-Security-Token" };
+        private const int BatchSize = 5;
+        private const int VisibilityTimeout = 30;
 
         internal CdkStack(Construct scope, string id, IStackProps props = null) : base(scope, id, props)
         {
-            // Create DynamoDB table ProductsTable
+            var appSettings = GetConfig();
+
+            // Create DynamoDB tables
             var productsTable = new Table(this, "ProductsTable", new TableProps
             {
                 TableName = "products",
@@ -27,7 +40,6 @@ namespace Cdk
                 RemovalPolicy = RemovalPolicy.DESTROY
             });
 
-            // Create DynamoDB table StocksTable
             var stocksTable = new Table(this, "StocksTable", new TableProps
             {
                 TableName = "stocks",
@@ -35,7 +47,6 @@ namespace Cdk
                 RemovalPolicy = RemovalPolicy.DESTROY
             });
 
-            // Create DynamoDB table LocksTable
             var locksTable = new Table(this, "LocksTable", new TableProps
             {
                 TableName = "transaction_locks",
@@ -43,71 +54,66 @@ namespace Cdk
                 RemovalPolicy = RemovalPolicy.DESTROY
             });
 
-            // Create Lambda function for getProductsList
-            var getProductsListFunction = new Function(this, "GetProductsListFunction", new FunctionProps
-            {
-                Runtime = Runtime.NODEJS_18_X,
-                Handler = "getProductsList.handler",
-                Code = Code.FromAsset($"../../{BackendPath}/{LambdaPath}"),
-                Environment = new Dictionary<string, string>
+            // Create Lambda functions
+            var getProductsListFunction = CreateLambdaFunction("GetProductsListFunction", "getProductsList.handler",
+                new Dictionary<string, string>
                 {
                     { "PRODUCTS_TABLE", productsTable.TableName },
                     { "STOCKS_TABLE", stocksTable.TableName }
-                }
-            });
+                });
 
-            // Create Lambda function for getProductsById
-            var getProductsByIdFunction = new Function(this, "GetProductsByIdFunction", new FunctionProps
-            {
-                Runtime = Runtime.NODEJS_18_X,
-                Handler = "getProductsById.handler",
-                Code = Code.FromAsset($"../../{BackendPath}/{LambdaPath}"),
-                Environment = new Dictionary<string, string>
+            var getProductsByIdFunction = CreateLambdaFunction("GetProductsByIdFunction", "getProductsById.handler",
+                new Dictionary<string, string>
                 {
                     { "PRODUCTS_TABLE", productsTable.TableName },
                     { "STOCKS_TABLE", stocksTable.TableName }
-                }
-            });
+                });
 
-            // Create Lambda function for createProduct
-            var createProductFunction = new Function(this, "CreateProductFunction", new FunctionProps
-            {
-                Runtime = Runtime.NODEJS_18_X,
-                Handler = "createProduct.handler",
-                Code = Code.FromAsset($"../../{BackendPath}/{LambdaPath}"),
-                Environment = new Dictionary<string, string>
+            var createProductFunction = CreateLambdaFunction("CreateProductFunction", "createProduct.handler",
+                new Dictionary<string, string>
                 {
                     { "PRODUCTS_TABLE", productsTable.TableName },
                     { "STOCKS_TABLE", stocksTable.TableName },
-                    { "LOCKS_TABLE", locksTable.TableName }
-                }
-            });
+                });
 
-            // Create Lambda function for deleteProductById
-            var deleteProductByIdFunction = new Function(this, "DeleteProductByIdFunction", new FunctionProps
-            {
-                Runtime = Runtime.NODEJS_18_X,
-                Handler = "deleteProductById.handler",
-                Code = Code.FromAsset($"../../{BackendPath}/{LambdaPath}"),
-                Environment = new Dictionary<string, string>
+            var deleteProductByIdFunction = CreateLambdaFunction("DeleteProductByIdFunction", "deleteProductById.handler",
+                new Dictionary<string, string>
                 {
                     { "PRODUCTS_TABLE", productsTable.TableName },
                     { "STOCKS_TABLE", stocksTable.TableName }
-                }
+                });
+
+            // Create SQS queue
+            var catalogItemsQueue = new Queue(this, "CatalogItemsQueue", new QueueProps
+            {
+                QueueName = "catalogItemsQueue",
+                VisibilityTimeout = Duration.Seconds(VisibilityTimeout)
             });
 
-            // Grant Lambda functions access to DynamoDB tables
-            productsTable.GrantReadWriteData(getProductsListFunction);
-            stocksTable.GrantReadWriteData(getProductsListFunction);
-            productsTable.GrantReadWriteData(getProductsByIdFunction);
-            stocksTable.GrantReadWriteData(getProductsByIdFunction);
-            productsTable.GrantReadWriteData(createProductFunction);
-            stocksTable.GrantReadWriteData(createProductFunction);
-            locksTable.GrantReadWriteData(createProductFunction);
-            productsTable.GrantReadWriteData(deleteProductByIdFunction);
-            stocksTable.GrantReadWriteData(deleteProductByIdFunction);
+            // Create Lambda function for batch processing
+            var catalogBatchProcessFunction = CreateLambdaFunction("CatalogBatchProcessFunction", "catalogBatchProcess.handler",
+                new Dictionary<string, string>
+                {
+                    { "PRODUCTS_TABLE", productsTable.TableName },
+                    { "STOCKS_TABLE", stocksTable.TableName },
+                    { "QUEUE_URL", catalogItemsQueue.QueueUrl },
+                });
 
-            // Create API Gateway with CORS preflight options
+            catalogBatchProcessFunction.AddEventSource(new SqsEventSource(catalogItemsQueue, new SqsEventSourceProps
+            {
+                BatchSize = BatchSize
+            }));
+
+            // Add SQS SendMessage permissions to Lambda role
+            catalogBatchProcessFunction.AddToRolePolicy(new PolicyStatement(new PolicyStatementProps
+            {
+                Actions = ["sqs:SendMessage"],
+                Resources = [catalogItemsQueue.QueueArn],
+            }));
+
+            catalogBatchProcessFunction.AddEnvironment("QUEUE_URL", catalogItemsQueue.QueueUrl);
+
+            // Create API Gateway with CORS
             var api = new RestApi(this, "ProductApi", new RestApiProps
             {
                 RestApiName = "Product Service",
@@ -119,14 +125,14 @@ namespace Cdk
                 }
             });
 
-            // Integrate getProductsListFunction with API Gateway
+            // Integrate Lambda functions with API Gateway
             var productsResource = api.Root.AddResource("products");
-            var getProductsListIntegration = new LambdaIntegration(getProductsListFunction);
-            productsResource.AddMethod("GET", getProductsListIntegration);
+            productsResource.AddMethod("GET", new LambdaIntegration(getProductsListFunction));
+            productsResource.AddMethod("POST", new LambdaIntegration(createProductFunction));
 
-            // Integrate createProductFunction with API Gateway
-            var createProductIntegration = new LambdaIntegration(createProductFunction);
-            productsResource.AddMethod("POST", createProductIntegration);
+            var productByIdResource = productsResource.AddResource("{productId}");
+            productByIdResource.AddMethod("GET", new LambdaIntegration(getProductsByIdFunction));
+            productByIdResource.AddMethod("DELETE", new LambdaIntegration(deleteProductByIdFunction));
 
             // Ensure CORS preflight is only added once
             if (productsResource.DefaultCorsPreflightOptions == null)
@@ -139,35 +145,92 @@ namespace Cdk
                 });
             }
 
-            // Integrate getProductsByIdFunction with API Gateway
-            var productByIdResource = productsResource.AddResource("{productId}");
-            var getProductsByIdIntegration = new LambdaIntegration(getProductsByIdFunction);
-            productByIdResource.AddMethod("GET", getProductsByIdIntegration);
-
-            // Integrate deleteProductByIdFunction with API Gateway
-            var deleteProductByIdIntegration = new LambdaIntegration(deleteProductByIdFunction);
-            productByIdResource.AddMethod("DELETE", deleteProductByIdIntegration);
-
-            // Ensure CORS preflight is only added once
-            if (productByIdResource.DefaultCorsPreflightOptions == null)
+            // Create SNS topic and subscriptions
+            var createProductTopic = new Topic(this, "CreateProductTopic", new TopicProps
             {
-                productByIdResource.AddCorsPreflight(new CorsOptions
+                TopicName = "createProductTopic"
+            });
+
+            createProductTopic.AddSubscription(new EmailSubscription(appSettings.Settings.EmailSubscription1));
+            catalogBatchProcessFunction.AddEnvironment("SNS_TOPIC_ARN", createProductTopic.TopicArn);
+            createProductTopic.AddSubscription(new EmailSubscription(appSettings.Settings.EmailSubscription2, new EmailSubscriptionProps
+            {
+                FilterPolicy = new Dictionary<string, SubscriptionFilter>
                 {
-                    AllowOrigins = GetAllowOrigins(),
-                    AllowMethods = _allowMethods,
-                    AllowHeaders = _allowHeaders
-                });
-            }
+                    {
+                        "count",
+                        SubscriptionFilter.NumericFilter(new NumericConditions
+                        {
+                            GreaterThan = 4
+                        })
+                    },
+                    //{
+                    //    "title",
+                    //    SubscriptionFilter.StringFilter(new StringConditions
+                    //    {
+                    //        Denylist = ["red", "RED", "Red"]
+                    //    })
+                    //}
+                }
+            }));
+
+            createProductTopic.GrantPublish(catalogBatchProcessFunction);
+
+            // Grant DynamoDB permissions
+            GrantDynamoDbPermissions(productsTable,stocksTable, getProductsListFunction, getProductsByIdFunction,
+                createProductFunction, deleteProductByIdFunction, catalogBatchProcessFunction);
+
+            new CfnOutput(this, "The ARN of this queue", new CfnOutputProps
+            {
+                Value = catalogItemsQueue.QueueArn,
+                Description = "QueueArn"
+            });
+
+            new CfnOutput(this, "QueueUrl", new CfnOutputProps
+            {
+                Value = catalogItemsQueue.QueueUrl,
+                Description = "The URL of this queue"
+            });
+        }
+
+        private Function CreateLambdaFunction(string functionName, string handler, Dictionary<string, string> environmentVariables)
+        {
+            return new Function(this, functionName, new FunctionProps
+            {
+                Runtime = Runtime.NODEJS_LATEST,
+                Handler = handler,
+                Code = Code.FromAsset($"../../{BackendPath}/{LambdaPath}"),
+                Environment = environmentVariables
+            });
+        }
+
+        private static void GrantDynamoDbPermissions(Table productsTable, Table stocksTable, Function getProductsListFunction, Function getProductsByIdFunction,
+            Function createProductFunction, Function deleteProductByIdFunction, Function catalogBatchProcessFunction)
+        {
+            productsTable.GrantReadWriteData(getProductsListFunction);
+            productsTable.GrantReadWriteData(getProductsByIdFunction);
+            productsTable.GrantReadWriteData(createProductFunction);
+            productsTable.GrantReadWriteData(deleteProductByIdFunction);
+            productsTable.GrantReadWriteData(catalogBatchProcessFunction);
+            stocksTable.GrantReadWriteData(getProductsListFunction);
+            stocksTable.GrantReadWriteData(getProductsByIdFunction);
+            stocksTable.GrantReadWriteData(createProductFunction);
+            stocksTable.GrantReadWriteData(deleteProductByIdFunction);
+            stocksTable.GrantReadWriteData(catalogBatchProcessFunction);
+        }
+
+        private static AppSettings GetConfig()
+        {
+            string configFilePath = "../../appsettings.json";
+            string jsonContent = File.ReadAllText(configFilePath);
+            return JsonSerializer.Deserialize<AppSettings>(jsonContent);
         }
 
         private static string[] GetAllowOrigins()
         {
             //const string localUrl = "http://localhost:3000";
             //const string docsUrl = "http://localhost:3000/api-docs";
-            return new[]
-            {
-                "*"
-            };
+            return new[] { "*" };
         }
     }
 }

@@ -18,6 +18,7 @@ const CONSTANTS = {
         INVALID_INPUT_DESCRIPTION: 'Description is required and must be a non-empty string',
         INVALID_INPUT_PRICE: 'Price is required and must be a positive number',
         INVALID_INPUT_COUNT: 'Count is required and must be a non-negative number',
+        BATCH_PROCESSED: 'Batch processed successfully',
         DELETE_SUCCESS: id => `Product deleted successfully: ${id}`,
         INVALID_PRODUCT_ID : id => `Invalid id: ${id}`,
         FAILED_TO_UNLOCK: error => `Failed to unlock: ${error}`,

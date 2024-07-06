@@ -208,6 +208,10 @@ Task: https://github.com/rolling-scopes-school/aws/blob/main/aws-developer/03_se
 - [Frontend](https://d3oeh93tzbcw2m.cloudfront.net/)
 - [Swagger](http://localhost:3000/api-docs)
 
+# Task 4
+
+Task: https://github.com/rolling-scopes-school/aws/blob/main/aws-developer/04_integration_with_nosql_database/task.md
+
 ### Task 4.1
 1. Created two DynamoDB tables:
    - **products** table with fields:
@@ -306,3 +310,30 @@ Created and configured a new S3 bucket with a folder called 'uploaded'
 4. Ensured that the Lambda function has the necessary permissions to read from the S3 bucket and log to CloudWatch.
 ![image](https://github.com/Tati-Moon/nodejs-aws-shop-react/assets/170366343/c5107f0b-aeae-414b-92f3-23c223d914de)
 
+
+# Task 6
+https://github.com/rolling-scopes-school/aws/blob/main/aws-developer/06_async_microservices_communication/task.md
+
+- [Product Service API](https://dapdmi8g8h.execute-api.us-east-1.amazonaws.com/prod/products)
+- [Product Service API for id = 8f79f8e2-8841-4dc3-871e-2f7c861b130e](https://dapdmi8g8h.execute-api.us-east-1.amazonaws.com/prod/products/8f79f8e2-8841-4dc3-871e-2f7c861b130e)
+- [Frontend](https://d3oeh93tzbcw2m.cloudfront.net/)
+- [Swagger](http://localhost:3000/api-docs)
+
+# Task 6.1
+- Created a lambda function called `catalogBatchProcess` under the Product Service, which is triggered by an SQS event.
+- Created an SQS queue called `catalogItemsQueue` in the AWS CDK Stack.
+- Configured the SQS to trigger the lambda `catalogBatchProcess` with 5 messages at once via the `batchSize` property.
+- The lambda function iterates over all SQS messages and creates corresponding products in the products table.
+
+# Task 6.2
+- Updated the `importFileParser` lambda function in the Import Service to send each CSV record into SQS.
+- It no longer logs entries from the readable stream to CloudWatch.
+
+# Task 6.3
+- Created an SNS topic `createProductTopic` and an email subscription in the AWS CDK Stack of the Product Service.
+- Created a subscription for this SNS topic with an email endpoint type, using your own email.
+- Updated the `catalogBatchProcess` lambda function in the Product Service to send an event to the SNS topic once it creates products.
+
+# Additional Tasks
+- The `catalogBatchProcess` lambda is covered by unit tests.
+- Set a Filter Policy for the SNS `createProductTopic` in the AWS CDK Stack and created an additional email subscription to distribute messages to different emails depending on the filter for any product attribute.

@@ -1,10 +1,12 @@
 using System.Collections.Generic;
 using System.IO;
+using System.Text.Json;
 using Amazon.CDK;
 using Amazon.CDK.AWS.APIGateway;
 using Amazon.CDK.AWS.Lambda;
 using Amazon.CDK.AWS.S3;
 using Amazon.CDK.AWS.S3.Notifications;
+using Amazon.CDK.AWS.SQS;
 using Constructs;
 using Function = Amazon.CDK.AWS.Lambda.Function;
 using FunctionProps = Amazon.CDK.AWS.Lambda.FunctionProps;
@@ -24,6 +26,8 @@ namespace CdkTest
 
         internal CdkStack(Construct scope, string id, IStackProps props = null) : base(scope, id, props)
         {
+            var appSettings = GetConfig();
+
             // Create S3 bucket
             var bucket = new Bucket(this, "ImportBucket", new BucketProps
             {
@@ -44,30 +48,27 @@ namespace CdkTest
                 }
             });
 
-            var lambdaFunctionProps = new FunctionProps
+            var importProductsFile = new Function(this, "ImportProductsFileFunction", new FunctionProps
             {
-                Runtime = Runtime.NODEJS_18_X,
+                Handler = "importProductsFile.handler",
+                Runtime = Runtime.NODEJS_LATEST,
                 Code = Code.FromAsset(Path.Combine(Directory.GetCurrentDirectory(), $"{LambdaCodePath}")),
                 Environment = new Dictionary<string, string>
                 {
                     { "BUCKET_NAME", BucketName }
                 }
-            };
-
-            var importProductsFile = new Function(this, "ImportProductsFileFunction", new FunctionProps
-            {
-                Handler = "importProductsFile.handler",
-                Runtime = lambdaFunctionProps.Runtime,
-                Code = lambdaFunctionProps.Code,
-                Environment = lambdaFunctionProps.Environment
             });
 
             var importFileParser = new Function(this, "ImportFileParserFunction", new FunctionProps
             {
                 Handler = "importFileParser.handler",
-                Runtime = lambdaFunctionProps.Runtime,
-                Code = lambdaFunctionProps.Code,
-                Environment = lambdaFunctionProps.Environment
+                Runtime = Runtime.NODEJS_LATEST,
+                Code = Code.FromAsset(Path.Combine(Directory.GetCurrentDirectory(), $"{LambdaCodePath}")),
+                Environment = new Dictionary<string, string>
+                {
+                    { "BUCKET_NAME", BucketName },
+                    { "QUEUE_URL", appSettings?.Settings?.ProductSqsQueueUrl }
+                }
             });
 
             bucket.GrantReadWrite(importProductsFile);
@@ -102,7 +103,6 @@ namespace CdkTest
                 {
                     ValidateRequestParameters = true
                 },
-                
             });
 
             // Ensure CORS preflight is only added once
@@ -116,6 +116,10 @@ namespace CdkTest
                 });
             }
 
+            // Import existing SQS queue by ARN
+            var productQueue = Queue.FromQueueArn(this, "ProductQueue", appSettings?.Settings?.ProductSqsQueueArn??"");
+            productQueue.GrantSendMessages(importFileParser);
+
             // Outputs
             new CfnOutput(this, "ImportApiUrl", new CfnOutputProps
             {
@@ -128,6 +132,13 @@ namespace CdkTest
                 Value = bucket.BucketName,
                 Description = "The name of the S3 bucket"
             });
+        }
+
+        private AppSettings GetConfig()
+        {
+            string configFilePath = "../../appsettings.json";
+            string jsonContent = File.ReadAllText(configFilePath);
+            return JsonSerializer.Deserialize<AppSettings>(jsonContent);
         }
 
         private static string[] GetAllowOrigins()
