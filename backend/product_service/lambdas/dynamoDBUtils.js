@@ -22,10 +22,10 @@ async function createTransactItems(products, productsTableName, stocksTableName,
 
             const productItem = marshall({
                 id: productId,
-                title: product.title,
-                description: product.description,
-                price: product.price,
-                photo: product.photo,
+                title: product.title || '',
+                description: product.description || '',
+                price: product.price || '',
+                photo: product.photo || '',
             });
 
             const stockItem = marshall({
