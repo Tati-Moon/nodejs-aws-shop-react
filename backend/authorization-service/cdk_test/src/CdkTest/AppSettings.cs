@@ -7,8 +7,7 @@
 
     public class AppSettingsSection
     {
-        public string ProductSqsQueueUrl { get; set; }
-        public string ProductSqsQueueArn { get; set; }
-        public string BasicAuthorizerLambdaArn { get; set; }
+        public string GitUserName { get; set; }
+        public string GitUserPassword { get; set; }
     }
 }

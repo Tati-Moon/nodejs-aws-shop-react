@@ -71,6 +71,12 @@ namespace CdkTest
                 }
             });
 
+            var basicAuthorizer = Function.FromFunctionAttributes(this, "BasicAuthorizerFunction", new FunctionAttributes
+            {
+                FunctionArn = appSettings.Settings.BasicAuthorizerLambdaArn,
+                SameEnvironment = true
+            });
+
             bucket.GrantReadWrite(importProductsFile);
             bucket.GrantReadWrite(importFileParser);
             bucket.GrantDelete(importFileParser);
@@ -91,7 +97,32 @@ namespace CdkTest
                 }
             });
 
+            api.AddGatewayResponse("ImportServiceDefault4xx", new GatewayResponseProps
+            {
+                Type = ResponseType_.DEFAULT_4XX,
+                ResponseHeaders = new Dictionary<string, string>
+                {
+                    { "Access-Control-Allow-Headers", "'Content-Type,Authorization'" },
+                    { "Access-Control-Allow-Origin", "'*'" },
+                    { "Access-Control-Allow-Methods", "'*'" }
+                }
+            });
+
+
             var importResource = api.Root.AddResource(ImportApiResource);
+
+            //var authorizer = new RequestAuthorizer(this, "RequestAuthorizer", new RequestAuthorizerProps
+            //{
+            //    Handler = basicAuthorizer,
+            //    IdentitySources = new[] { IdentitySource.Header("Authorization") },
+            //    ResultsCacheTtl = Duration.Seconds(0)
+            //});
+            var authorizer = new TokenAuthorizer(this, "BasicAuthorizer", new TokenAuthorizerProps
+            {
+                Handler = basicAuthorizer,
+                IdentitySource = "method.request.header.Authorization",
+                ResultsCacheTtl = Duration.Seconds(0)
+            });
 
             importResource.AddMethod("GET", new LambdaIntegration(importProductsFile), new MethodOptions
             {
@@ -103,6 +134,8 @@ namespace CdkTest
                 {
                     ValidateRequestParameters = true
                 },
+                Authorizer = authorizer,
+                AuthorizationType = AuthorizationType.CUSTOM
             });
 
             // Ensure CORS preflight is only added once
