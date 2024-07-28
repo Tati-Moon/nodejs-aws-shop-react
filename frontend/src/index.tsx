@@ -14,7 +14,6 @@ axios.interceptors.response.use(
         return response;
     },
     (error) => {
-
     const statusCode = error.response?.status;
     console.error('HTTP Status Code:', statusCode);
 
