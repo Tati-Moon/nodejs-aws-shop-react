@@ -22,7 +22,7 @@ namespace CartServiceApi.Controllers
 
         private async Task<Guid> GetUserIdAsync()
         {
-            return (await _userService.GetUserByNameAsync(User?.Identity?.Name))?.Id ?? Guid.Empty;
+            return (await _userService.GetUserByNameAsync(User?.Identity?.Name?? "test3"))?.Id ?? Guid.Empty;
         }
 
         [HttpGet]

@@ -21,6 +21,16 @@ namespace CartServiceApi
             dataSourceBuilder.MapEnum<OrderStatus>();
             var dataSource = dataSourceBuilder.Build();
 
+            builder.Services.AddCors(options =>
+            {
+                options.AddPolicy("AllowSpecificOrigins", policy =>
+                {
+                    policy.AllowAnyOrigin()
+                          .AllowAnyMethod()
+                          .AllowAnyHeader();
+                });
+            });
+
             builder.Services.AddDbContext<DatabaseContext>(options => options.UseNpgsql(dataSource));
 
 
@@ -28,6 +38,7 @@ namespace CartServiceApi
                 .AddScheme<AuthenticationSchemeOptions, BasicAuthenticationHandler>("BasicAuthentication", null);
 
             builder.Services.AddTransient<IUserService, UserService>();
+            builder.Services.AddTransient<IProductService, ProductService>();
             builder.Services.AddTransient<ICartService,CartService.Domain.Services.CartService>();
             builder.Services.AddTransient<IOrderService, OrderService>();
 
@@ -66,7 +77,7 @@ namespace CartServiceApi
 
 
             var app = builder.Build();
-
+            app.UseCors("AllowSpecificOrigins");
             // Configure the HTTP request pipeline.
             if (app.Environment.IsDevelopment())
             {

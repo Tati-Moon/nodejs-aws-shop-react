@@ -12,16 +12,14 @@ namespace CartServiceApi.Handlers
     {
         private readonly IUserService _userService;
 
+        [Obsolete]
         public BasicAuthenticationHandler(
             IOptionsMonitor<AuthenticationSchemeOptions> options,
             ILoggerFactory logger,
             UrlEncoder encoder,
             ISystemClock clock,
             IUserService userService)
-            : base(options, logger, encoder, clock)
-        {
-            _userService = userService;
-        }
+            : base(options, logger, encoder, clock) => _userService = userService;
 
         protected override async Task<AuthenticateResult> HandleAuthenticateAsync()
         {
